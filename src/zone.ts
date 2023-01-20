@@ -1,53 +1,98 @@
-import { parseZoneFile, makeZoneFile } from "zone-file";
+import * as ZF from "zone-file";
 import * as fs from 'fs';
+import { getZoneFileTemplate } from "./zoneFileTemplate";
 
-export function getDefaultAddress(coin: string, text: any | string): { [key: string]: string } | null {
-    let addresses = getAddresses(coin, text);
-    return (addresses == null ? null : addresses[0]);
+export function getDefaultAddress(zoneFileJson: {[key:string] : any}, coin: string): string | null {
+    //returns null if there's no address
+
+    let addresses = getAddresses(zoneFileJson, coin);
+    return (addresses.length == 0 ? null : addresses[0]);
 }
 
-export function getAddresses(coin: string, text: any | string): { [key: string]: string }[] | null {
-    // what type to use for text?
-    let zoneFileJson = (typeof text === 'string' ? parseZoneFile(text) : text);
+export function getAddresses(zoneFileJson: {[key:string] : any}, coin: string): string[] {
+    // returns empty list if there's no address
+
     let origin = zoneFileJson.$origin;
     let txts = zoneFileJson.txt;
 
-    if (origin == null || txts == null) return null;
+    if (origin == undefined || txts == undefined) return [];
     let rrName = getResourceRecordName(coin, origin);
 
-    for (const txt of txts) {
-        if (txt.name == rrName) { // if there are 2 rr of the same name?
-            let data = txt.txt;
+    for (const record of txts) {
+        if (record.name == rrName) {
+            let data = record.txt;
             if (Array.isArray(data)) {
                 data = data[0];
             }
             let addresses = data.split(',');
 
-            let ret = [];
-            for (const addr of addresses) {
-                ret.push({
-                    'coin': coin.toUpperCase(),
-                    'address': addr,
-                })
-            }
-            return ret;
+            return addresses;
         }
     }
 
-    return null;
+    return [];
 }
 
-export function updateAddresses(coin: string, text: any | string, addresses: string[]) {
-    // if addresses = [], then the entry will be removed
-    // returns a zone file JSON
-    let zoneFileJson = (typeof text === 'string' ? parseZoneFile(text) : text);
+export function addAddress(zoneFileJson: {[key:string] : any}, coin: string, address: string, isDefault: boolean) {
+    // if address already exists, the default setting can be changed
+
+    let addresses = getAddresses(zoneFileJson, coin);
+
+    if (addresses.includes(address)) {
+        if (isDefault && addresses[0] != address) {
+            // change address to default
+            addresses = addresses.filter(x => x != address);
+            addresses.unshift(address);
+            setAddresses(zoneFileJson, coin, addresses);
+        }
+        else if (!isDefault && addresses[0] == address) {
+            // next address becomes default
+            addresses = addresses.filter(x => x != address);
+            addresses.push(address);
+            setAddresses(zoneFileJson, coin, addresses);
+        }
+    }
+    else {
+        if (isDefault) {
+            addresses.unshift(address);
+        }
+        else {
+            addresses.push(address);
+        }
+        setAddresses(zoneFileJson, coin, addresses);
+    }
+}
+
+export function removeAddress(zoneFileJson: {[key:string] : any}, coin: string, address: string) {
+
+    let addresses = getAddresses(zoneFileJson, coin);
+
+    if (addresses.includes(address)) {
+        addresses = addresses.filter(x => x != address);
+        setAddresses(zoneFileJson, coin, addresses);
+    }
+    // else do we want to throw an error
+
+}
+
+export function removeCoin(zoneFileJson: {[key:string] : any}, coin: string) {
+    // removes the txt entry corresponding to the coin
+
+    setAddresses(zoneFileJson, coin, []);
+}
+
+export function setAddresses(zoneFileJson: {[key:string] : any}, coin: string, addresses: string[]) {
+    // if addresses = [], then the txt entry will be removed
+    // returns the resulting zone file JSON
+
     let origin = zoneFileJson.$origin;
     let txts = zoneFileJson.txt;
 
-    if (origin == null || txts == null) return zoneFileJson;
+    if (origin == undefined) return;
     let rrName = getResourceRecordName(coin, origin);
 
-    txts = txts.filter((x: any) => x.name != rrName);
+    if (txts == undefined) txts = [];
+    else txts = txts.filter((x: any) => x.name != rrName);
 
     if (addresses.length > 0) {
         txts.push({
@@ -56,25 +101,44 @@ export function updateAddresses(coin: string, text: any | string, addresses: str
         })
     }
     zoneFileJson.txt = txts;
-    return zoneFileJson;
+}
+
+export function parseZoneFile(zoneFile: string) {
+    // converts zone file text to json
+    return ZF.parseZoneFile(zoneFile);
+}
+
+export function makeZoneFile(zoneFileJson: {[key:string] : any}) {
+    // converts zone file json to text
+    return ZF.makeZoneFile(zoneFileJson, getZoneFileTemplate());
 }
 
 function getResourceRecordName(coin: string, name: string): string {
-    // TODO: need name.toLowerCase()?
     return '_' + coin.toLowerCase() + '._addr.' + name + '.';
 }
 
 // --- Testing ---
 
-console.log(getResourceRecordName('BTC', 'muneeb.id'));
+/*
+let zf = fs.readFileSync('zonefile.txt', 'utf8');
+let zfjson = parseZoneFile(zf);
+console.log(zfjson);
+console.log(getAddresses(zfjson, 'btc'));
+setAddresses(zfjson, 'btc', ['0x']);
+console.log(getDefaultAddress(zfjson, 'btc'));
+setAddresses(zfjson, 'stx', ['1234', '5678']);
+console.log(zfjson)
+setAddresses(zfjson, 'eth', ['1234', '5678']);
+console.log(makeZoneFile(zfjson)); 
 
-let text = fs.readFileSync('zonefile.txt', 'utf8');
-console.log(parseZoneFile(text));
-console.log(getAddresses('BTC', text));
-console.log(getAddresses('BTC', updateAddresses('btc', text, [])));
-let text2 = updateAddresses('stx', text, ['1234', '5678']);
-console.log(text2);
-console.log(getDefaultAddress('STX', text2));
+console.log(zfjson);
+console.log(getDefaultAddress(zfjson, 'stx'));
+zfjson = addAddress(zfjson, 'stx', '90', false);
+console.log(zfjson);
+console.log(getDefaultAddress(zfjson, 'stx'));
+zfjson = setDefaultAddress(zfjson, 'stx', '5678');
+console.log(zfjson);
+console.log(getDefaultAddress(zfjson, 'stx'));
 
-// this output file contains a lot of comments
-// console.log(makeZoneFile(text2)); 
+console.log(makeZoneFile(zfjson)); 
+*/

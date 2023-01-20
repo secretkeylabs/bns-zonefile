@@ -7,5 +7,9 @@ Functionality
 * look up blockchain addresses in a zone file
 * change blockchain addresses in a zone file
 
+Sample zone file:
+https://stacks-node-api.mainnet.stacks.co/v1/names/muneeb.id/zonefile
+https://stacks-node-api.mainnet.stacks.co/v1/names/yukan.id/zonefile
+
 BNS contract for reference
 https://explorer.stacks.co/txid/0xd8a9a4528ae833e1894eee676af8d218f8facbf95e166472df2c1a64219b5dfb?chain=mainnet
