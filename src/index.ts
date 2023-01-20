@@ -1,1 +1,1 @@
-export * from './zone';
+export * from './zoneFile';
