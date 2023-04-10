@@ -8,7 +8,6 @@ export function getZoneFileTemplate(zoneFileJson: ZoneFileObject | null = null) 
     for (let key of KEY_LIST) {
       if (key in zoneFileJson) template += '{' + key + '}\n'
     }
-    console.log(template);
   }
   else {
     template = '{$origin}\n{$ttl}\n{txt}\n{uri}\n';
