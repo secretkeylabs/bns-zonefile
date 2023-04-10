@@ -120,7 +120,6 @@ describe('zone file with txt', () => {
         removeCoin(zoneFileJson, 'STx');
         expect(makeZoneFile(zoneFileJson)).toEqual(`$ORIGIN muneeb.id
 $TTL 3600
-
 _btc._addr.muneeb.id.\tIN\tTXT\t"1TESTqAqVWQhEsfQz7zEQL1EuSx5tyNLNS"
 _eth._addr.muneeb.id.\tIN\tTXT\t"0x1TESTA9E9aa1C9dB991C7721a92d351Db4FaC990,0x2TEST18CA8B9251b393131C08a736A67ccB19297"
 

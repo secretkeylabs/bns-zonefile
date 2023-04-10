@@ -1,15 +1,17 @@
-export function getZoneFileTemplate() {
-  return '{$origin}\n\
-{$ttl}\n\
-{ns}\n\
-{mx}\n\
-{a}\n\
-{aaaa}\n\
-{cname}\n\
-{ptr}\n\
-{txt}\n\
-{srv}\n\
-{spf}\n\
-{uri}\n\
-';
+import { ZoneFileObject } from "./types";
+
+const KEY_LIST = ['$origin', '$ttl', 'ns', 'mx', 'a', 'aaaa', 'cname', 'ptr', 'txt', 'srv', 'spf', 'uri']
+
+export function getZoneFileTemplate(zoneFileJson: ZoneFileObject | null = null) {
+  let template = '';
+  if (zoneFileJson != null) {
+    for (let key of KEY_LIST) {
+      if (key in zoneFileJson) template += '{' + key + '}\n'
+    }
+    console.log(template);
+  }
+  else {
+    template = '{$origin}\n{$ttl}\n{txt}\n{uri}\n';
+  }
+  return template;
 }

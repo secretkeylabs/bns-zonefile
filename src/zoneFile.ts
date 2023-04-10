@@ -111,7 +111,7 @@ export function parseZoneFile(zoneFile: string) {
 
 export function makeZoneFile(zoneFileJson: ZoneFileObject) {
     // converts zone file json to text
-    return ZF.makeZoneFile(zoneFileJson, getZoneFileTemplate());
+    return ZF.makeZoneFile(zoneFileJson, getZoneFileTemplate(zoneFileJson));
 }
 
 function getResourceRecordName(coin: string, name: string): string {
